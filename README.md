@@ -31,10 +31,33 @@ SecureChat 是一个基于端到端加密（End-to-End Encryption, E2EE）机制
 2. **安装依赖库**
 确保您的环境中已安装 Python 3.8 或以上版本，然后执行：
 
-```bash
-pip install cryptography
+   ```bash
+   pip install cryptography
 3. **启动客户端 B（例如：Bob）**
 再新开一个终端窗口，启动 Bob 的客户端，并指定要聊天的对象为 Alice：
 
-```bash
-python chat_client.py Bob Alice
+   ```bash
+   python chat_client.py Bob Alice
+连接成功后，双方将自动完成以下步骤：
+
+    生成 Ed25519 与 ECDH 密钥对。
+
+    交换公钥并验证对方的数字签名。
+
+    派生出只有双方知道的 AES-256 共享密钥。
+
+    提示共享密钥已建立！现在可以安全通信了。即可开始双向加密聊天。
+
+核心交互流程解析
+
+    密钥生成
+    客户端启动后，crypto_utils.py 会生成长期身份密钥对（Ed25519）和临时会话密钥对（ECDH）。
+
+    密钥交换与防篡改
+    Alice 将自己的 ECDH 公钥发送给 Bob 时，会附带使用自己 Ed25519 私钥生成的数字签名。Bob 收到后通过身份公钥验证签名，确保公钥未被中途替换。
+
+    消息加密
+    发送消息时，消息体会被加上一个 seq 序列号（如 {"seq": 0, "msg": "你好"}），然后通过 AES-GCM 进行加密。
+
+    消息解密与防重放
+    接收方解密出载荷后，会检查 seq 是否大于当前预期的序列号，如果是一个旧的序列号，则会直接抛弃（拦截重放攻击）。
